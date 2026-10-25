@@ -8,7 +8,7 @@ from threading import Thread
 from flask import Flask
 
 # ==========================================
-# 24시간 호스팅용 웹 서버 (Render / Koyeb 무료 호스팅용)
+# 24시간 호스팅용 웹 서버
 # ==========================================
 app = Flask('')
 
@@ -17,7 +17,7 @@ def home():
     return "PARADISE Escrow Bot is Running Online!"
 
 def run_flask():
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
 def keep_alive():
@@ -53,7 +53,6 @@ class EscrowControlView(View):
     # 중개 종료 (채널 삭제)
     @discord.ui.button(label="중개 완료 및 채널 닫기", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="close_escrow_btn")
     async def close_escrow(self, interaction: discord.Interaction, button: Button):
-        # 즉시 응답 지연 처리 (3초 초과 에러 방지)
         await interaction.response.defer(ephemeral=True)
 
         if not check_staff(interaction.user):
@@ -72,7 +71,6 @@ class EscrowCreateView(View):
     # 1:1 중개 신청 버튼
     @discord.ui.button(label="중개 신청하기", style=discord.ButtonStyle.success, emoji="🏛️", custom_id="create_escrow_btn")
     async def create_escrow(self, interaction: discord.Interaction, button: Button):
-        # ★ 핵심: 디스코드 3초 타임아웃 오류 방지 (즉시 응답 준비 신호 전송)
         await interaction.response.defer(ephemeral=True)
 
         guild = interaction.guild
@@ -91,7 +89,7 @@ class EscrowCreateView(View):
         if not category:
             category = await guild.create_category("🚨 | 실시간 중개 진행중", position=0)
 
-        # 채널 권한 설정 (신청자, 관리자/중개인, 봇만 보기)
+        # 채널 권한 설정
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
@@ -133,7 +131,6 @@ class EscrowCreateView(View):
 
 @bot.event
 async def on_ready():
-    # Persistent View 등록 (봇이 재시작되어도 버튼이 먹통이 되지 않음)
     bot.add_view(EscrowCreateView())
     bot.add_view(EscrowControlView())
     print(f"로그인 완료: {bot.user} (ID: {bot.user.id})")
@@ -160,9 +157,6 @@ async def send_escrow_panel(ctx):
 
 
 if __name__ == "__main__":
-    # 무료 웹 호스팅 서버 가동 (24시간 상시 가동용)
     keep_alive()
-    
-    # 환경변수 토큰 사용 또는 직접 토큰 입력
-    TOKEN = os.environ.get("DISCORD_TOKEN", "MTU2Mjc3NTkyMzI1MjY1ODI3Nw.GANtIo.uFeS-HqYN8s7ylsPV31vp7OMuvdtNbUu2iOGyA")
+    TOKEN = os.environ.get("DISCORD_TOKEN")
     bot.run(TOKEN)
